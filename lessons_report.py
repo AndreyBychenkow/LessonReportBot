@@ -58,9 +58,6 @@ def main():
                 params["timestamp"] = list_of_works_data.get("last_attempt_timestamp")
 
         except requests.exceptions.ReadTimeout:
-            bot.send_message(
-                chat_id=tg_chat_id, text=f"⚠️ Сервер не ответил за {request_timeout} секунд... Продолжаем цикл ..."
-            )
             continue
 
         except requests.exceptions.ConnectionError:
