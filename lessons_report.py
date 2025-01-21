@@ -1,18 +1,15 @@
 import time
 import requests
 import logging
-from logging.handlers import QueueHandler
-from queue import Queue
+import traceback
 from environs import Env
 from telegram import Bot
 
 logging.basicConfig(
+	filename='bot.log',
 	level=logging.INFO,
 	format='%(asctime)s - %(levelname)s - %(message)s'
 )
-
-log_queue = Queue()
-queue_handler = QueueHandler(log_queue)
 
 
 class TelegramLogHandler(logging.Handler):
@@ -72,6 +69,7 @@ def main():
 
 	while True:
 		try:
+
 			list_of_works_data = get_reviews(dvmn_api_url, headers, params, request_timeout)
 
 			if list_of_works_data.get("status") == "found":
@@ -83,19 +81,10 @@ def main():
 
 				params["timestamp"] = list_of_works_data.get("last_attempt_timestamp")
 
-		except requests.exceptions.ReadTimeout:
-			logging.warning("Таймаут при чтении данных. Продолжаю ожидание...")
-			continue
+		except Exception as e:
 
-		except requests.exceptions.ConnectionError:
-			bot.send_message(
-				chat_id=tg_chat_id, text="⚠️ Потеряно соединение с интернетом. Ожидаю восстановления..."
-			)
-			logging.error("Потеряно соединение с интернетом. Ожидаю восстановления...")
-			time.sleep(10)
-
-		except requests.exceptions.RequestException as e:
-			bot.send_message(chat_id=tg_chat_id, text=f"⚠️ Произошла ошибка: {e}")
+			error_message = f"⚠️ Произошла ошибка:\n{traceback.format_exc()}"
+			bot.send_message(chat_id=tg_chat_id, text=error_message)
 			logging.error(f"Произошла ошибка: {e}")
 			time.sleep(10)
 
