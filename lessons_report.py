@@ -1,7 +1,7 @@
 import time
 import requests
 import logging
-from logging.handlers import QueueHandler, QueueListener
+from logging.handlers import QueueHandler
 from queue import Queue
 from environs import Env
 from telegram import Bot
@@ -102,3 +102,4 @@ def main():
 
 if __name__ == "__main__":
 	main()
+
