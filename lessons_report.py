@@ -96,9 +96,8 @@ def main():
 				params["timestamp"] = list_of_works_data.get("last_attempt_timestamp", params.get("timestamp"))
 
 		except requests.exceptions.ReadTimeout:
-			logging.warning("Превышено время ожидания ответа от API DVMN")
-			bot.send_message(chat_id=config["tg_chat_id"],
-							 text="⚠️ Превышено время ожидания ответа от API DVMN. Повторяю запрос...")
+			continue
+
 		except Exception as e:
 			error_message = f"⚠️ Произошла ошибка:\n{traceback.format_exc()}"
 			for chunk in split_message(error_message):
