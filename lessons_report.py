@@ -20,26 +20,19 @@ class TelegramLogHandler(logging.Handler):
 
 	def emit(self, record):
 		log_entry = self.format(record)
+		self.send_log(log_entry)
+
+	def send_log(self, log_entry):
 		try:
 			self.bot.send_message(chat_id=self.chat_id, text=log_entry)
 		except Exception as e:
 			logging.error(f"Ошибка отправки лога в Telegram: {e}")
 
 
-def get_reviews(dvmn_api_url, headers, params, timeout, retries=3):
-	for attempt in range(retries):
-		try:
-			response = requests.get(dvmn_api_url, headers=headers, params=params, timeout=timeout)
-			response.raise_for_status()
-			return response.json()
-		except requests.exceptions.ReadTimeout:
-			if attempt < retries - 1:
-				time.sleep(2 ** attempt)
-				continue
-			else:
-				raise
-		except requests.exceptions.RequestException as e:
-			raise Exception(f"Ошибка запроса: {e}")
+def get_reviews(dvmn_api_url, headers, params, timeout):
+	response = requests.get(dvmn_api_url, headers=headers, params=params, timeout=timeout)
+	response.raise_for_status()
+	return response.json()
 
 
 def create_message(attempt):
