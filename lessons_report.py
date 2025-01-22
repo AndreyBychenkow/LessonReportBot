@@ -23,7 +23,7 @@ class TelegramLogHandler(logging.Handler):
 		try:
 			self.bot.send_message(chat_id=self.chat_id, text=log_entry)
 		except Exception as e:
-			print(f"Ошибка отправки лога в Telegram: {e}")
+			logging.error(f"Ошибка отправки лога в Telegram: {e}")
 
 
 def get_reviews(dvmn_api_url, headers, params, timeout, retries=3):
@@ -68,25 +68,28 @@ def main():
 	env = Env()
 	env.read_env()
 
-	request_timeout = env.int("REQUEST_TIMEOUT", 90)
-	dvmn_api_url = "https://dvmn.org/api/long_polling/"
-	dvmn_api_token = env("DVMN_API_TOKEN")
-	tg_bot_api = env("TG_BOT_API")
-	tg_chat_id = env("TG_CHAT_ID")
+	config = {
+		"request_timeout": env.int("REQUEST_TIMEOUT", 90),
+		"dvmn_api_token": env("DVMN_API_TOKEN"),
+		"tg_bot_api": env("TG_BOT_API"),
+		"tg_chat_id": env("TG_CHAT_ID")
+	}
 
-	telegram_handler = TelegramLogHandler(tg_bot_api, tg_chat_id)
+	telegram_handler = TelegramLogHandler(config["tg_bot_api"], config["tg_chat_id"])
 	logging.getLogger().addHandler(telegram_handler)
 
-	bot = Bot(token=tg_bot_api)
-	bot.send_message(chat_id=tg_chat_id, text="🤖 Запускаем...")
+	bot = Bot(token=config["tg_bot_api"])
+	bot.send_message(chat_id=config["tg_chat_id"], text="🤖 Запускаем...")
 	logging.info("Запуск бота прошел успешно! Начинаю ожидать ответа от DVMN.")
 
-	headers = {"Authorization": f"Token {dvmn_api_token}"}
+	headers = {"Authorization": f"Token {config['dvmn_api_token']}"}
 	params = {}
 
 	while True:
 		try:
-			list_of_works_data = get_reviews(dvmn_api_url, headers, params, request_timeout)
+			list_of_works_data = get_reviews(
+				"https://dvmn.org/api/long_polling/", headers, params, config["request_timeout"]
+			)
 
 			if list_of_works_data.get("status") == "found":
 				lesson_attempts = list_of_works_data["new_attempts"]
@@ -95,18 +98,18 @@ def main():
 					message = create_message(attempt)
 
 					for chunk in split_message(message):
-						bot.send_message(chat_id=tg_chat_id, text=chunk)
+						bot.send_message(chat_id=config["tg_chat_id"], text=chunk)
 
 				params["timestamp"] = list_of_works_data.get("last_attempt_timestamp", params.get("timestamp"))
 
 		except requests.exceptions.ReadTimeout:
 			logging.warning("Превышено время ожидания ответа от API DVMN")
-			bot.send_message(chat_id=tg_chat_id,
+			bot.send_message(chat_id=config["tg_chat_id"],
 							 text="⚠️ Превышено время ожидания ответа от API DVMN. Повторяю запрос...")
 		except Exception as e:
 			error_message = f"⚠️ Произошла ошибка:\n{traceback.format_exc()}"
 			for chunk in split_message(error_message):
-				bot.send_message(chat_id=tg_chat_id, text=chunk)
+				bot.send_message(chat_id=config["tg_chat_id"], text=chunk)
 			logging.error(f"Произошла ошибка: {e}")
 			time.sleep(10)
 
